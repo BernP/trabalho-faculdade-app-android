@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { initialTasks, initialNotes } from './model';
 import { Cores } from './sheets';
 import { Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AppContext = createContext();
 
@@ -13,20 +14,54 @@ export function AppProvider({ children }) {
   // --- ESTADOS GERAIS ---
   const [isDark, setIsDark] = useState(false);
   const [pin, setPin] = useState(null); 
+  const [tasks, setTasks] = useState([]);
+  const [notes, setNotes] = useState([]);
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
+
   const theme = isDark ? Cores.dark : Cores.light;
   const toggleTheme = () => setIsDark(!isDark);
 
-  // --- DADOS BRUTOS ---
-  const [tasks, setTasks] = useState(initialTasks);
-  const [notes, setNotes] = useState(initialNotes);
+  // --- CARREGAR (LOAD) ---
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const savedTasks = await AsyncStorage.getItem('@tasks');
+        const savedNotes = await AsyncStorage.getItem('@notes');
+        const savedPin = await AsyncStorage.getItem('@pin');
+        const savedTheme = await AsyncStorage.getItem('@theme');
 
-  // --- ESTADOS DE BUSCA E FILTRO ---
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('newest'); // 'newest', 'oldest', 'az'
+        if (savedTasks) setTasks(JSON.parse(savedTasks));
+        if (savedNotes) setNotes(JSON.parse(savedNotes));
+        if (savedPin) setPin(savedPin);
+        if (savedTheme) setIsDark(JSON.parse(savedTheme));
+      } catch (e) {
+        console.error("Erro ao carregar", e);
+      }
+    };
+    loadData();
+  }, []);
 
-  // --- FUNÇÃO DE PROCESSAMENTO (BUSCA + ORDENAÇÃO) ---
+  // --- SALVAR (AUTO-SAVE) ---
+  useEffect(() => {
+    const saveData = async () => {
+      try {
+        await AsyncStorage.setItem('@tasks', JSON.stringify(tasks));
+        await AsyncStorage.setItem('@notes', JSON.stringify(notes));
+        await AsyncStorage.setItem('@theme', JSON.stringify(isDark));
+        if (pin) await AsyncStorage.setItem('@pin', pin);
+        else await AsyncStorage.removeItem('@pin');
+      } catch (e) {
+        console.error("Erro ao salvar", e);
+      }
+    };
+    saveData();
+  }, [tasks, notes, pin, isDark]);
+
+  // --- PROCESSAMENTO (BUSCA + ORDENAÇÃO) ---
   const processData = (dataList) => {
-    // 1. Filtro por texto (Busca)
+    // 1. Filtro
     let result = dataList.filter(item => 
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
       (item.desc && item.desc.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -34,7 +69,20 @@ export function AppProvider({ children }) {
 
     // 2. Ordenação
     result.sort((a, b) => {
-      if (sortBy === 'newest') return Number(b.id) - Number(a.id); // ID é timestamp
+
+      if (sortBy === 'date') {
+        if (!a.date) return 1; 
+        if (!b.date) return -1;
+
+        const [d1, m1, y1] = a.date.split('/');
+        const [d2, m2, y2] = b.date.split('/');
+        const dateA = new Date(y1, m1 - 1, d1).getTime();
+        const dateB = new Date(y2, m2 - 1, d2).getTime();
+        
+        return dateA - dateB; // Menor (mais antiga/próxima) primeiro
+      }
+
+      if (sortBy === 'newest') return Number(b.id) - Number(a.id);
       if (sortBy === 'oldest') return Number(a.id) - Number(b.id);
       if (sortBy === 'az') return a.title.localeCompare(b.title);
       return 0;
@@ -43,30 +91,28 @@ export function AppProvider({ children }) {
     return result;
   };
 
-  // Listas processadas para a View usar
   const filteredTasks = processData(tasks);
   const filteredNotes = processData(notes);
 
-  // --- CRUD TAREFAS ---
+  // --- CRUD ---
   const addTask = (title, desc, date, alarm) => {
     if (!title.trim()) { Alert.alert("Erro", "Título obrigatório!"); return; }
     const newTask = { id: Date.now().toString(), title, desc, date, alarm };
-    setTasks([newTask, ...tasks]);
+    setTasks(prev => [newTask, ...prev]);
   };
 
   const editTask = (id, newTitle, newDesc, newDate) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, title: newTitle, desc: newDesc, date: newDate } : t));
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, title: newTitle, desc: newDesc, date: newDate } : t));
   };
 
-  // --- CRUD NOTAS ---
   const addNote = (title, desc, isLocked) => {
     if (!title.trim()) { Alert.alert("Erro", "Título obrigatório!"); return; }
     const newNote = { id: Date.now().toString(), title, desc, locked: isLocked };
-    setNotes([newNote, ...notes]);
+    setNotes(prev => [newNote, ...prev]);
   };
 
   const editNote = (id, newTitle, newDesc, isLocked) => {
-    setNotes(notes.map(n => n.id === id ? { ...n, title: newTitle, desc: newDesc, locked: isLocked } : n));
+    setNotes(prev => prev.map(n => n.id === id ? { ...n, title: newTitle, desc: newDesc, locked: isLocked } : n));
   };
 
   // --- SEGURANÇA ---
@@ -88,28 +134,34 @@ export function AppProvider({ children }) {
       { 
         text: "Apagar", style: 'destructive',
         onPress: () => {
-          if (type === 'task') setTasks(tasks.filter(t => t.id !== id));
-          if (type === 'note') setNotes(notes.filter(n => n.id !== id));
+          if (type === 'task') setTasks(prev => prev.filter(t => t.id !== id));
+          if (type === 'note') setNotes(prev => prev.filter(n => n.id !== id));
         }
       }
     ]);
   };
 
   const clearAllData = () => {
-    Alert.alert("Confirmação", "Apagar TUDO?", [
+    Alert.alert("ATENÇÃO", "Isso apagará tudo permanentemente. Continuar?", [
         { text: "Cancelar" },
-        { text: "Sim", onPress: () => { setTasks([]); setNotes([]); setPin(null); } }
+        { 
+          text: "Sim, Apagar Tudo", style: 'destructive',
+          onPress: async () => { 
+            setTasks([]); setNotes([]); setPin(null); setIsDark(false);
+            await AsyncStorage.clear();
+          } 
+        }
     ]);
   };
 
   const value = {
     theme, isDark, toggleTheme,
-    filteredTasks, addTask, editTask, // Exportando lista filtrada
-    filteredNotes, addNote, editNote, // Exportando lista filtrada
+    filteredTasks, addTask, editTask,
+    filteredNotes, addNote, editNote,
     pin, registerPin, verifyPin, changePin,
     deleteItem, clearAllData,
-    searchQuery, setSearchQuery, // Controle da busca
-    sortBy, setSortBy // Controle da ordenação
+    searchQuery, setSearchQuery,
+    sortBy, setSortBy
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

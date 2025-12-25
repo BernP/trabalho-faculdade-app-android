@@ -1,34 +1,36 @@
 import { StyleSheet, Platform } from 'react-native';
 
+// --- DEFINIÇÃO DAS NOVAS PALETAS DE CORES ---
 export const Cores = {
+  // Paleta CLARA (Baseada nos Amarelos/Laranjas)
   light: {
-    background: '#F2F6FF', // Um azul muito pálido, mais moderno que cinza
-    card: '#FFFFFF',
-    text: '#1A1A1A',
-    subtext: '#8E8E93',
-    primary: '#6C63FF', // Roxo mais vibrante
-    accent: '#00D2D3', // Ciano vibrante
-    danger: '#FF6B6B',
-    border: '#E5E5EA',
-    inputBg: '#F2F2F7'
+    background: '#FFF9E6', // Um creme bem claro para o fundo
+    card: '#FFFFFF',       // Cartões brancos para destaque
+    text: '#333333',       // Texto cinza escuro para contraste
+    subtext: '#888888',    // Texto secundário mais suave
+    primary: '#FFC72C',    // Amarelo principal da paleta
+    accent: '#FF8B2B',     // Laranja de destaque
+    danger: '#FF6B6B',     // Vermelho para perigo
+    border: '#E0E0E0',     // Bordas cinza claro
+    inputBg: '#F5F5F5'     // Fundo de inputs
   },
+  // Paleta ESCURA (Baseada nos Azuis/Roxos)
   dark: {
-    background: '#121212',
-    card: '#1E1E1E',
-    text: '#FFFFFF',
-    subtext: '#A1A1AA',
-    primary: '#8B85FF',
-    accent: '#00D2D3',
-    danger: '#FF6B6B',
-    border: '#2C2C2E',
-    inputBg: '#2C2C2E'
+    background: '#0F172A', // Um azul marinho muito escuro para o fundo
+    card: '#1E293B',       // Um tom de azul um pouco mais claro para os cartões
+    text: '#F8FAFC',       // Texto quase branco
+    subtext: '#94A3B8',    // Texto secundário azul-acinzentado
+    primary: '#2B44FF',    // Azul vibrante principal da paleta
+    accent: '#9C2BFF',     // Roxo de destaque
+    danger: '#FF6B6B',     // Vermelho para perigo
+    border: '#334155',     // Bordas em azul-acinzentado escuro
+    inputBg: '#1E293B'     // Fundo de inputs (igual ao cartão)
   }
 };
 
 export const styles = StyleSheet.create({
   container: { flex: 1 },
   
-  // Header Moderno
   header: { 
     paddingHorizontal: 20, 
     paddingTop: 10, 
@@ -36,14 +38,10 @@ export const styles = StyleSheet.create({
   },
   headerTitle: { 
     fontSize: 32, 
-    fontWeight: '800', // Extra bold
+    fontWeight: '800',
     marginBottom: 5 
   },
-  headerSubtitle: {
-    fontSize: 14,
-    fontWeight: '500'
-  },
-
+  
   // Barra de Busca e Filtro
   searchContainer: {
     flexDirection: 'row',
@@ -57,8 +55,8 @@ export const styles = StyleSheet.create({
     alignItems: 'center', 
     paddingHorizontal: 15,
     height: 50,
-    borderRadius: 25, // Totalmente arredondado
-    borderWidth: 0, // Sem borda feia
+    borderRadius: 25,
+    borderWidth: 0, 
   },
   filterBtn: {
     width: 50,
@@ -70,13 +68,13 @@ export const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3
   },
 
-  // Cartões Premium
+
   card: {
     borderRadius: 16, 
     padding: 18, 
     marginBottom: 16,
     borderWidth: 0,
-    // Sombras suaves (iOS/Android)
+
     elevation: 3, 
     shadowColor: '#000', 
     shadowOffset: { width: 0, height: 4 }, 
@@ -88,16 +86,16 @@ export const styles = StyleSheet.create({
   cardDesc: { fontSize: 14, lineHeight: 20 },
   cardDate: { fontSize: 12, fontWeight: '600', marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
 
-  // Botão Flutuante (FAB)
+
   fab: {
     position: 'absolute', bottom: 20, right: 20, width: 60, height: 60,
     borderRadius: 30, justifyContent: 'center', alignItems: 'center',
-    elevation: 8, shadowColor: '#6C63FF', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8
+    elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8
   },
 
   // Modais e Inputs
   modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' // Modal vem de baixo
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end'
   },
   modalContent: {
     width: '100%', padding: 25, 
@@ -112,7 +110,7 @@ export const styles = StyleSheet.create({
   },
   
   modalButtons: { flexDirection: 'row', width: '100%', justifyContent: 'space-between', marginTop: 10, gap: 15 },
-  btnCancel: { flex:1, padding: 15, borderRadius: 12, alignItems: 'center', justifyContent:'center', borderWidth: 1, borderColor: 'transparent' },
+  btnCancel: { flex:1, padding: 15, borderRadius: 12, alignItems: 'center', justifyContent:'center', borderWidth: 1 },
   btnConfirm: { flex:1, padding: 15, borderRadius: 12, alignItems: 'center', justifyContent:'center', elevation: 2 },
 
   // Configurações

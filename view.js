@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, TextInput, Switch, Modal, StatusBar, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, TextInput, Switch, Modal, StatusBar, Alert, Platform } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { styles } from './sheets';
 import { AppProvider, useController } from './controller';
 
-// --- COMPONENTES AUXILIARES ---
-
-// 1. Estado Vazio (Bonito)
 const EmptyState = ({ message, onAdd, theme, isSearching }) => (
   <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 80, padding: 30, opacity: 0.7 }}>
     <Ionicons name={isSearching ? "search" : "sparkles"} size={50} color={theme.subtext} style={{marginBottom:15}} />
@@ -28,7 +26,6 @@ const EmptyState = ({ message, onAdd, theme, isSearching }) => (
   </View>
 );
 
-// 2. Barra de Busca e Filtro
 const SearchHeader = ({ title, theme, searchQuery, setSearchQuery, onFilterPress }) => (
   <View style={styles.header}>
     <Text style={[styles.headerTitle, { color: theme.text }]}>{title}</Text>
@@ -55,7 +52,6 @@ const SearchHeader = ({ title, theme, searchQuery, setSearchQuery, onFilterPress
   </View>
 );
 
-// --- TELA HOME (AFAZERES) ---
 function HomeScreen() {
   const { theme, isDark, filteredTasks, addTask, editTask, deleteItem, searchQuery, setSearchQuery, sortBy, setSortBy } = useController(); 
   
@@ -64,25 +60,37 @@ function HomeScreen() {
   const [isEditingMode, setIsEditingMode] = useState(false); 
   const [currentItemId, setCurrentItemId] = useState(null);
 
-  // Campos
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
-  const [date, setDate] = useState('');
+  const [dateStr, setDateStr] = useState(''); 
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [dateObject, setDateObject] = useState(new Date());
 
   const openCreate = () => {
-    setCurrentItemId(null); setTitle(''); setDesc(''); setDate('');
+    setCurrentItemId(null); setTitle(''); setDesc(''); setDateStr('');
     setIsEditingMode(true); setModalVisible(true);
   };
 
   const openView = (item) => {
-    setCurrentItemId(item.id); setTitle(item.title); setDesc(item.desc); setDate(item.date);
+    setCurrentItemId(item.id); setTitle(item.title); setDesc(item.desc); setDateStr(item.date);
     setIsEditingMode(false); setModalVisible(true);
   };
 
   const handleSave = () => {
-    if (currentItemId) editTask(currentItemId, title, desc, date);
-    else addTask(title, desc, date, false);
+    if (currentItemId) editTask(currentItemId, title, desc, dateStr);
+    else addTask(title, desc, dateStr, false);
     setModalVisible(false);
+  };
+
+  const onDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setDateObject(selectedDate);
+      const day = selectedDate.getDate().toString().padStart(2, '0');
+      const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
+      const year = selectedDate.getFullYear();
+      setDateStr(`${day}/${month}/${year}`);
+    }
   };
 
   return (
@@ -119,7 +127,6 @@ function HomeScreen() {
         <Ionicons name="add" size={32} color="#FFF" />
       </TouchableOpacity>
 
-      {/* MODAL VIEW/EDIT */}
       <Modal visible={modalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
@@ -138,7 +145,35 @@ function HomeScreen() {
               <>
                 <TextInput placeholder="Título" placeholderTextColor={theme.subtext} style={[styles.input, { color:theme.text, borderColor:theme.border, backgroundColor: theme.inputBg }]} value={title} onChangeText={setTitle} />
                 <TextInput placeholder="Descrição..." multiline placeholderTextColor={theme.subtext} style={[styles.input, { color:theme.text, borderColor:theme.border, backgroundColor: theme.inputBg, height: 100, textAlignVertical:'top'}]} value={desc} onChangeText={setDesc} />
-                <TextInput placeholder="Data" placeholderTextColor={theme.subtext} style={[styles.input, { color:theme.text, borderColor:theme.border, backgroundColor: theme.inputBg }]} value={date} onChangeText={setDate} />
+                
+                <View style={{flexDirection: 'row', gap: 10}}>
+                  <TextInput 
+                    placeholder="DD/MM/AAAA" 
+                    placeholderTextColor={theme.subtext} 
+                    style={[styles.input, { flex: 1, color:theme.text, borderColor:theme.border, backgroundColor: theme.inputBg }]} 
+                    value={dateStr} 
+                    onChangeText={setDateStr}
+                    keyboardType="numbers-and-punctuation"
+                  />
+                  <TouchableOpacity 
+                    onPress={() => setShowDatePicker(true)}
+                    style={{
+                      width: 50, height: 50, borderRadius: 12, borderWidth: 1, borderColor: theme.border, 
+                      backgroundColor: theme.inputBg, justifyContent: 'center', alignItems: 'center', marginTop: 2
+                    }}
+                  >
+                    <Ionicons name="calendar" size={24} color={theme.primary} />
+                  </TouchableOpacity>
+                </View>
+
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={dateObject}
+                    mode="date"
+                    display="default"
+                    onChange={onDateChange}
+                  />
+                )}
               </>
             ) : (
               <View style={{marginBottom:20}}>
@@ -149,7 +184,7 @@ function HomeScreen() {
                 <Text style={{color:theme.text, fontSize:16, marginBottom:15, lineHeight:24}}>{desc || "Sem descrição"}</Text>
                 
                 <View style={{backgroundColor: theme.background, padding:10, borderRadius:8, alignSelf:'flex-start'}}>
-                    <Text style={{color:theme.primary, fontWeight:'bold'}}>{date}</Text>
+                    <Text style={{color:theme.primary, fontWeight:'bold'}}>{dateStr}</Text>
                 </View>
               </View>
             )}
@@ -168,21 +203,26 @@ function HomeScreen() {
         </View>
       </Modal>
 
-      {/* MODAL DE FILTRO */}
       <Modal visible={filterModalVisible} transparent animationType="slide">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setFilterModalVisible(false)}>
             <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
                 <Text style={[styles.modalTitle, {color: theme.text}]}>Ordenar Por</Text>
                 
+                <TouchableOpacity onPress={() => { setSortBy('date'); setFilterModalVisible(false); }} style={[styles.filterOption, {borderColor: theme.border}]}>
+                    <Ionicons name="calendar-outline" size={24} color={sortBy === 'date' ? theme.primary : theme.subtext} />
+                    <Text style={{marginLeft:15, fontSize:16, color: sortBy === 'date' ? theme.primary : theme.text, fontWeight: sortBy === 'date' ? 'bold' : 'normal'}}>Data da Tarefa (Próximas)</Text>
+                    {sortBy === 'date' && <Ionicons name="checkmark" size={20} color={theme.primary} style={{marginLeft:'auto'}} />}
+                </TouchableOpacity>
+
                 <TouchableOpacity onPress={() => { setSortBy('newest'); setFilterModalVisible(false); }} style={[styles.filterOption, {borderColor: theme.border}]}>
                     <Ionicons name="time" size={24} color={sortBy === 'newest' ? theme.primary : theme.subtext} />
-                    <Text style={{marginLeft:15, fontSize:16, color: sortBy === 'newest' ? theme.primary : theme.text, fontWeight: sortBy === 'newest' ? 'bold' : 'normal'}}>Mais Recentes (Padrão)</Text>
+                    <Text style={{marginLeft:15, fontSize:16, color: sortBy === 'newest' ? theme.primary : theme.text, fontWeight: sortBy === 'newest' ? 'bold' : 'normal'}}>Criação (Mais Recentes)</Text>
                     {sortBy === 'newest' && <Ionicons name="checkmark" size={20} color={theme.primary} style={{marginLeft:'auto'}} />}
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={() => { setSortBy('oldest'); setFilterModalVisible(false); }} style={[styles.filterOption, {borderColor: theme.border}]}>
                     <Ionicons name="hourglass-outline" size={24} color={sortBy === 'oldest' ? theme.primary : theme.subtext} />
-                    <Text style={{marginLeft:15, fontSize:16, color: sortBy === 'oldest' ? theme.primary : theme.text, fontWeight: sortBy === 'oldest' ? 'bold' : 'normal'}}>Mais Antigos</Text>
+                    <Text style={{marginLeft:15, fontSize:16, color: sortBy === 'oldest' ? theme.primary : theme.text, fontWeight: sortBy === 'oldest' ? 'bold' : 'normal'}}>Criação (Mais Antigos)</Text>
                     {sortBy === 'oldest' && <Ionicons name="checkmark" size={20} color={theme.primary} style={{marginLeft:'auto'}} />}
                 </TouchableOpacity>
 
@@ -198,7 +238,6 @@ function HomeScreen() {
   );
 }
 
-// --- TELA COFRE ---
 function SecureScreen() {
   const { theme, filteredNotes, pin, verifyPin, registerPin, addNote, editNote, deleteItem, searchQuery, setSearchQuery, setSortBy } = useController();
   
@@ -302,7 +341,6 @@ function SecureScreen() {
         <Ionicons name="add" size={32} color="#000" />
       </TouchableOpacity>
 
-      {/* MODAL AUTH */}
       <Modal visible={authVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
@@ -316,7 +354,6 @@ function SecureScreen() {
         </View>
       </Modal>
 
-      {/* MODAL DETALHES */}
       <Modal visible={detailsVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
@@ -361,7 +398,6 @@ function SecureScreen() {
         </View>
       </Modal>
 
-      {/* MODAL CRIAR PIN */}
       <Modal visible={createPinVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
@@ -372,7 +408,6 @@ function SecureScreen() {
         </View>
       </Modal>
 
-      {/* REUTILIZANDO O MODAL DE FILTRO (Lógica igual ao HomeScreen) */}
       <Modal visible={filterModalVisible} transparent animationType="slide">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setFilterModalVisible(false)}>
             <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
@@ -393,7 +428,6 @@ function SecureScreen() {
   );
 }
 
-// --- TELA CONFIGURAÇÕES (Mantida a mesma lógica, só visual atualizado) ---
 function SettingsScreen() {
   const { theme, isDark, toggleTheme, clearAllData, pin, changePin } = useController();
   const [modalVisible, setModalVisible] = useState(false);
@@ -455,7 +489,6 @@ function SettingsScreen() {
   );
 }
 
-// --- NAVEGAÇÃO ---
 const Tab = createBottomTabNavigator();
 
 function MainNavigation() {
