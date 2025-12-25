@@ -3,8 +3,8 @@ export const TaskModel = {
   create: (id, title, desc, date, alarm) => ({ id, title, desc, date, alarm }),
 };
 
-// Dados Iniciais (ZERADOS)
+// Dados Iniciais
 export const initialTasks = [];
 
-// Dados Iniciais de Notas (ZERADOS)
+// Dados Iniciais de Notas
 export const initialNotes = [];
